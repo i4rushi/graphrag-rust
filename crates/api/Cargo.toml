@@ -27,3 +27,4 @@ extract = { path = "../extract" }
 index = { path = "../index" }
 communities = { path = "../communities" }
 query = { path = "../query" }
+reqwest = "0.12"

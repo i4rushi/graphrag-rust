@@ -10,7 +10,6 @@ use tracing_subscriber;
 
 #[derive(Clone)]
 struct AppState {
-    qdrant_client: qdrant_client::Qdrant,
     neo4j_graph: neo4rs::Graph,
 }
 
@@ -25,11 +24,6 @@ async fn main() {
     // Initialize tracing
     tracing_subscriber::fmt::init();
 
-    // Connect to Qdrant (new API)
-    let qdrant_client = qdrant_client::Qdrant::from_url("http://localhost:6333")
-        .build()
-        .expect("Failed to create Qdrant client");
-
     // Connect to Neo4j
     let neo4j_graph = neo4rs::Graph::new(
         "bolt://localhost:7687",
@@ -40,14 +34,13 @@ async fn main() {
     .expect("Failed to connect to Neo4j");
 
     let state = Arc::new(AppState {
-        qdrant_client,
         neo4j_graph,
     });
 
     // Build router
     let app = Router::new()
         .route("/health", post(health_check))
-        .route("/health", get(health_check)) // Also support GET
+        .route("/health", get(health_check))
         .with_state(state);
 
     // Start server
@@ -63,9 +56,10 @@ async fn main() {
 async fn health_check(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<HealthResponse>, StatusCode> {
-    // Check Qdrant
-    let qdrant_status = match state.qdrant_client.health_check().await {
-        Ok(_) => "ok".to_string(),
+    // Check Qdrant with REST API
+    let qdrant_status = match reqwest::get("http://localhost:6333/").await {
+        Ok(resp) if resp.status().is_success() => "ok".to_string(),
+        Ok(resp) => format!("error: status {}", resp.status()),
         Err(e) => format!("error: {}", e),
     };
 
