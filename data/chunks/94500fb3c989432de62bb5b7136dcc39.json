@@ -1,0 +1,10 @@
+{
+  "doc_id": "83f722dd18b6dba6bc952385963c6152",
+  "chunk_id": "94500fb3c989432de62bb5b7136dcc39",
+  "text": "# Introduction to GraphRAG\n\nGraphRAG combines the power of graph databases with retrieval augmented generation.\n\n",
+  "source": "data/input/test.md",
+  "offset": [
+    0,
+    113
+  ]
+}

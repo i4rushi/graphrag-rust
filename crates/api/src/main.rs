@@ -4,9 +4,24 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+
 use serde::Serialize;
 use std::sync::Arc;
 use tracing_subscriber;
+
+use serde::Deserialize;
+use std::path::PathBuf;
+
+#[derive(Deserialize)]
+struct IngestRequest {
+    path: String,
+}
+
+#[derive(Serialize)]
+struct IngestResponse {
+    chunks_created: usize,
+    doc_ids: Vec<String>,
+}
 
 #[derive(Clone)]
 struct AppState {
@@ -17,6 +32,52 @@ struct AppState {
 struct HealthResponse {
     qdrant: String,
     neo4j: String,
+}
+
+async fn ingest_document(
+    Json(req): Json<IngestRequest>,
+) -> Result<Json<IngestResponse>, StatusCode> {
+    let path = PathBuf::from(&req.path);
+    
+    if !path.exists() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    
+    let chunks = if path.is_file() {
+        ingest::ingest_file(&path)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    } else if path.is_dir() {
+        ingest::ingest_directory(&path)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    } else {
+        return Err(StatusCode::BAD_REQUEST);
+    };
+    
+    // Save chunks to disk (data/chunks/)
+    let output_dir = PathBuf::from("data/chunks");
+    tokio::fs::create_dir_all(&output_dir)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let mut doc_ids = std::collections::HashSet::new();
+    
+    for chunk in &chunks {
+        doc_ids.insert(chunk.doc_id.clone());
+        
+        let chunk_file = output_dir.join(format!("{}.json", chunk.chunk_id));
+        let json = serde_json::to_string_pretty(chunk)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        tokio::fs::write(chunk_file, json)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    }
+    
+    Ok(Json(IngestResponse {
+        chunks_created: chunks.len(),
+        doc_ids: doc_ids.into_iter().collect(),
+    }))
 }
 
 #[tokio::main]
@@ -41,6 +102,7 @@ async fn main() {
     let app = Router::new()
         .route("/health", post(health_check))
         .route("/health", get(health_check))
+        .route("/ingest", post(ingest_document))
         .with_state(state);
 
     // Start server

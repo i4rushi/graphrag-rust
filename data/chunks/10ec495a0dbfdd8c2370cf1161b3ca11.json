@@ -1,0 +1,10 @@
+{
+  "doc_id": "83f722dd18b6dba6bc952385963c6152",
+  "chunk_id": "10ec495a0dbfdd8c2370cf1161b3ca11",
+  "text": "## Implementation\n\nThe system processes documents in several stages:\n- Ingestion and chunking\n- Entity extraction\n- Graph indexing\n- Query processing\n\nThis allows for both local and global search capabilities.\n",
+  "source": "data/input/test.md",
+  "offset": [
+    253,
+    463
+  ]
+}

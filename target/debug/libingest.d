@@ -1,1 +1,1 @@
-/Users/arushi/Documents/graphrag-rust/target/debug/libingest.rlib: /Users/arushi/Documents/graphrag-rust/crates/ingest/src/lib.rs
+/Users/arushi/Documents/graphrag-rust/target/debug/libingest.rlib: /Users/arushi/Documents/graphrag-rust/crates/ingest/src/chunk.rs /Users/arushi/Documents/graphrag-rust/crates/ingest/src/chunker.rs /Users/arushi/Documents/graphrag-rust/crates/ingest/src/lib.rs /Users/arushi/Documents/graphrag-rust/crates/ingest/src/reader.rs

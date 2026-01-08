@@ -1,0 +1,10 @@
+{
+  "doc_id": "83f722dd18b6dba6bc952385963c6152",
+  "chunk_id": "4e297eb6536cf304fa7c017383d84796",
+  "text": "## Key Concepts\n\nVector embeddings allow us to find semantically similar content. Graph structures capture relationships between entities.\n\n",
+  "source": "data/input/test.md",
+  "offset": [
+    113,
+    253
+  ]
+}
