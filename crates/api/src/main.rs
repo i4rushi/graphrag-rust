@@ -4,13 +4,13 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::Arc;
 use tracing_subscriber;
 
 #[derive(Clone)]
 struct AppState {
-    qdrant_client: qdrant_client::client::QdrantClient,
+    qdrant_client: qdrant_client::Qdrant,
     neo4j_graph: neo4rs::Graph,
 }
 
@@ -25,8 +25,8 @@ async fn main() {
     // Initialize tracing
     tracing_subscriber::fmt::init();
 
-    // Connect to Qdrant
-    let qdrant_client = qdrant_client::client::QdrantClient::from_url("http://localhost:6333")
+    // Connect to Qdrant (new API)
+    let qdrant_client = qdrant_client::Qdrant::from_url("http://localhost:6333")
         .build()
         .expect("Failed to create Qdrant client");
 
