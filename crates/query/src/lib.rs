@@ -12,3 +12,6 @@ mod tests {
         assert_eq!(result, 4);
     }
 }
+pub fn placeholder() {
+    println!("query module - to be implemented");
+}

@@ -12,3 +12,7 @@ mod tests {
         assert_eq!(result, 4);
     }
 }
+
+pub fn placeholder() {
+    println!("Communities module - to be implemented");
+}
