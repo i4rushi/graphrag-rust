@@ -1,0 +1,46 @@
+{
+  "chunk_id": "4e297eb6536cf304fa7c017383d84796",
+  "doc_id": "83f722dd18b6dba6bc952385963c6152",
+  "extraction": {
+    "entities": [
+      {
+        "id": "vector embeddings",
+        "name": "vector embeddings",
+        "type": "CONCEPT",
+        "description": "brief description"
+      },
+      {
+        "id": "semantically similar content",
+        "name": "semantically similar content",
+        "type": "CONCEPT",
+        "description": "brief description"
+      },
+      {
+        "id": "graph structures",
+        "name": "graph structures",
+        "type": "CONCEPT",
+        "description": "brief description"
+      },
+      {
+        "id": "entities",
+        "name": "entities",
+        "type": "CONCEPT",
+        "description": "brief description"
+      }
+    ],
+    "relations": [
+      {
+        "source": "E1",
+        "target": "E2",
+        "relation": "captures",
+        "evidence": "Vector embeddings allow us to find semantically similar content."
+      },
+      {
+        "source": "E3",
+        "target": "E4",
+        "relation": "captures",
+        "evidence": "Graph structures capture relationships between entities."
+      }
+    ]
+  }
+}

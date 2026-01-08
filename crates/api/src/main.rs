@@ -4,13 +4,23 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing_subscriber;
 
-use serde::Deserialize;
-use std::path::PathBuf;
+#[derive(Clone)]
+struct AppState {
+    neo4j_graph: neo4rs::Graph,
+    extractor: Arc<Mutex<extract::Extractor>>,
+}
+
+#[derive(Serialize)]
+struct HealthResponse {
+    qdrant: String,
+    neo4j: String,
+}
 
 #[derive(Deserialize)]
 struct IngestRequest {
@@ -23,15 +33,79 @@ struct IngestResponse {
     doc_ids: Vec<String>,
 }
 
-#[derive(Clone)]
-struct AppState {
-    neo4j_graph: neo4rs::Graph,
+#[derive(Deserialize)]
+struct ExtractRequest {
+    /// Optional: extract from specific chunk file
+    chunk_file: Option<String>,
 }
 
 #[derive(Serialize)]
-struct HealthResponse {
-    qdrant: String,
-    neo4j: String,
+struct ExtractResponse {
+    chunks_processed: usize,
+    entities_extracted: usize,
+    relations_extracted: usize,
+}
+
+#[tokio::main]
+async fn main() {
+    // Initialize tracing
+    tracing_subscriber::fmt::init();
+
+    // Connect to Neo4j
+    let neo4j_graph = neo4rs::Graph::new(
+        "bolt://localhost:7687",
+        "neo4j",
+        "yourpassword",
+    )
+    .await
+    .expect("Failed to connect to Neo4j");
+
+    // Create extractor
+    let extractor = extract::Extractor::default();
+
+    let state = Arc::new(AppState {
+        neo4j_graph,
+        extractor: Arc::new(Mutex::new(extractor)),
+    });
+
+    // Build router
+    let app = Router::new()
+        .route("/health", post(health_check))
+        .route("/health", get(health_check))
+        .route("/ingest", post(ingest_document))
+        .route("/extract", post(extract_chunks))
+        .with_state(state);
+
+    // Start server
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+        .await
+        .unwrap();
+    
+    tracing::info!("Server listening on http://localhost:3000");
+    
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn health_check(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<HealthResponse>, StatusCode> {
+    // Check Qdrant with REST API
+    let qdrant_status = match reqwest::get("http://localhost:6333/").await {
+        Ok(resp) if resp.status().is_success() => "ok".to_string(),
+        Ok(resp) => format!("error: status {}", resp.status()),
+        Err(e) => format!("error: {}", e),
+    };
+
+    // Check Neo4j with a simple query
+    let neo4j_status = match state.neo4j_graph.run(neo4rs::query("RETURN 1")).await {
+        Ok(_) => "ok".to_string(),
+        Err(e) => format!("error: {}", e),
+    };
+
+    Ok(Json(HealthResponse {
+        qdrant: qdrant_status,
+        neo4j: neo4j_status,
+    }))
 }
 
 async fn ingest_document(
@@ -80,59 +154,88 @@ async fn ingest_document(
     }))
 }
 
-#[tokio::main]
-async fn main() {
-    // Initialize tracing
-    tracing_subscriber::fmt::init();
+async fn extract_chunks(
+    State(state): State<Arc<AppState>>,
+    req: Option<Json<ExtractRequest>>,
+) -> Result<Json<ExtractResponse>, StatusCode> {
+    let chunks_dir = PathBuf::from("data/chunks");
+    
+    // Read chunk files
+    let chunk_files: Vec<PathBuf> = if let Some(Json(req)) = req {
+        if let Some(chunk_file) = req.chunk_file {
+            vec![chunks_dir.join(chunk_file)]
+        } else {
+            read_chunk_files(&chunks_dir).await?
+        }
+    } else {
+        read_chunk_files(&chunks_dir).await?
+    };
 
-    // Connect to Neo4j
-    let neo4j_graph = neo4rs::Graph::new(
-        "bolt://localhost:7687",
-        "neo4j",
-        "yourpassword", // Use the password from your docker-compose.yml
-    )
-    .await
-    .expect("Failed to connect to Neo4j");
-
-    let state = Arc::new(AppState {
-        neo4j_graph,
-    });
-
-    // Build router
-    let app = Router::new()
-        .route("/health", post(health_check))
-        .route("/health", get(health_check))
-        .route("/ingest", post(ingest_document))
-        .with_state(state);
-
-    // Start server
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
+    let mut total_entities = 0;
+    let mut total_relations = 0;
+    let output_dir = PathBuf::from("data/extracted");
+    tokio::fs::create_dir_all(&output_dir)
         .await
-        .unwrap();
-    
-    tracing::info!("Server listening on http://localhost:3000");
-    
-    axum::serve(listener, app).await.unwrap();
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    for chunk_path in &chunk_files {
+        // Read chunk
+        let chunk_json = tokio::fs::read_to_string(chunk_path)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        
+        let chunk: ingest::Chunk = serde_json::from_str(&chunk_json)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // Extract entities and relations
+        let mut extractor = state.extractor.lock().await;
+        
+        let extracted = extractor
+            .extract_chunk(chunk.chunk_id.clone(), chunk.doc_id.clone(), &chunk.text)
+            .await
+            .map_err(|e| {
+                eprintln!("Extraction error: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+        total_entities += extracted.extraction.entities.len();
+        total_relations += extracted.extraction.relations.len();
+
+        // Save extracted data
+        let output_file = output_dir.join(format!("{}.json", chunk.chunk_id));
+        let json = serde_json::to_string_pretty(&extracted)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        tokio::fs::write(output_file, json)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    }
+
+    Ok(Json(ExtractResponse {
+        chunks_processed: chunk_files.len(),
+        entities_extracted: total_entities,
+        relations_extracted: total_relations,
+    }))
 }
 
-async fn health_check(
-    State(state): State<Arc<AppState>>,
-) -> Result<Json<HealthResponse>, StatusCode> {
-    // Check Qdrant with REST API
-    let qdrant_status = match reqwest::get("http://localhost:6333/").await {
-        Ok(resp) if resp.status().is_success() => "ok".to_string(),
-        Ok(resp) => format!("error: status {}", resp.status()),
-        Err(e) => format!("error: {}", e),
-    };
-
-    // Check Neo4j with a simple query
-    let neo4j_status = match state.neo4j_graph.run(neo4rs::query("RETURN 1")).await {
-        Ok(_) => "ok".to_string(),
-        Err(e) => format!("error: {}", e),
-    };
-
-    Ok(Json(HealthResponse {
-        qdrant: qdrant_status,
-        neo4j: neo4j_status,
-    }))
+// Helper function to read chunk files from directory
+async fn read_chunk_files(chunks_dir: &PathBuf) -> Result<Vec<PathBuf>, StatusCode> {
+    let mut entries = tokio::fs::read_dir(&chunks_dir)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let mut files = Vec::new();
+    while let Some(entry) = entries.next_entry()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? 
+    {
+        let path = entry.path();
+        if path.is_file() {
+            if let Some(ext) = path.extension() {
+                if ext == "json" {
+                    files.push(path);
+                }
+            }
+        }
+    }
+    Ok(files)
 }

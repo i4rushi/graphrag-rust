@@ -1,0 +1,40 @@
+{
+  "chunk_id": "94500fb3c989432de62bb5b7136dcc39",
+  "doc_id": "83f722dd18b6dba6bc952385963c6152",
+  "extraction": {
+    "entities": [
+      {
+        "id": "graphrag",
+        "name": "graphrag",
+        "type": "CONCEPT",
+        "description": "graph database concept"
+      },
+      {
+        "id": "graph databases",
+        "name": "graph databases",
+        "type": "CONCEPT",
+        "description": "database concept"
+      },
+      {
+        "id": "retrieval augmented generation",
+        "name": "retrieval augmented generation",
+        "type": "CONCEPT",
+        "description": "text generation concept"
+      }
+    ],
+    "relations": [
+      {
+        "source": "E1",
+        "target": "E2",
+        "relation": "combines",
+        "evidence": "GraphRAG combines the power of graph databases with retrieval augmented generation."
+      },
+      {
+        "source": "E1",
+        "target": "E3",
+        "relation": "uses",
+        "evidence": "GraphRAG combines the power of graph databases with retrieval augmented generation."
+      }
+    ]
+  }
+}

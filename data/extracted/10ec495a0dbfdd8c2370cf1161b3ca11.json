@@ -1,0 +1,76 @@
+{
+  "chunk_id": "10ec495a0dbfdd8c2370cf1161b3ca11",
+  "doc_id": "83f722dd18b6dba6bc952385963c6152",
+  "extraction": {
+    "entities": [
+      {
+        "id": "system",
+        "name": "system",
+        "type": "CONCEPT",
+        "description": "a conceptual representation"
+      },
+      {
+        "id": "documents",
+        "name": "documents",
+        "type": "CONCEPT",
+        "description": "written or printed materials"
+      },
+      {
+        "id": "ingestion and chunking",
+        "name": "ingestion and chunking",
+        "type": "EVENT",
+        "description": "processing stage 1"
+      },
+      {
+        "id": "entity extraction",
+        "name": "entity extraction",
+        "type": "EVENT",
+        "description": "processing stage 2"
+      },
+      {
+        "id": "graph indexing",
+        "name": "graph indexing",
+        "type": "EVENT",
+        "description": "processing stage 3"
+      },
+      {
+        "id": "query processing",
+        "name": "query processing",
+        "type": "EVENT",
+        "description": "processing stage 4"
+      }
+    ],
+    "relations": [
+      {
+        "source": "E1",
+        "target": "E2",
+        "relation": "processes",
+        "evidence": "The system processes documents in several stages"
+      },
+      {
+        "source": "E1",
+        "target": "E3",
+        "relation": "uses",
+        "evidence": "Ingestion and chunking"
+      },
+      {
+        "source": "E1",
+        "target": "E4",
+        "relation": "uses",
+        "evidence": "Entity extraction"
+      },
+      {
+        "source": "E1",
+        "target": "E5",
+        "relation": "uses",
+        "evidence": "Graph indexing"
+      },
+      {
+        "source": "E1",
+        "target": "E6",
+        "relation": "uses",
+        "evidence": "Query processing"
+      }
+    ]
+  }
+}

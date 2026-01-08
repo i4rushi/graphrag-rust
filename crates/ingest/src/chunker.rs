@@ -1,4 +1,4 @@
-use unicode_segmentation::UnicodeSegmentation;
+//use unicode_segmentation::UnicodeSegmentation;
 use crate::chunk::Chunk;
 
 pub struct ChunkerConfig {

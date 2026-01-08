@@ -6,4 +6,11 @@ edition = "2024"
 [dependencies]
 tokio = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 anyhow = { workspace = true }
+
+#LLM client
+reqwest = {version = "0.12", features = ["json"]}
+
+#text processing
+regex = "1.10"
