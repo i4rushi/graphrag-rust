@@ -9,11 +9,13 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing_subscriber;
+//use qdrant_client::Qdrant;
 
 #[derive(Clone)]
 struct AppState {
     neo4j_graph: neo4rs::Graph,
     extractor: Arc<Mutex<extract::Extractor>>,
+    indexer: std::sync::Arc<index::Indexer>,
 }
 
 #[derive(Serialize)]
@@ -63,9 +65,28 @@ async fn main() {
     // Create extractor
     let extractor = extract::Extractor::default();
 
+    // Create embedding client
+    let embedding_client = index::EmbeddingClient::default();
+
+    // Create Qdrant indexer (using REST API)
+    let qdrant_indexer = index::QdrantIndexer::new(
+        "http://localhost:6333".to_string(),
+        embedding_client,
+        "graphrag_chunks".to_string(),
+    );
+    
+    let neo4j_indexer = index::Neo4jIndexer::new(neo4j_graph.clone());
+
+    // Create unified indexer
+    let indexer = index::Indexer::new(qdrant_indexer, neo4j_indexer);
+    
+    // Initialize stores
+    indexer.init().await.expect("Failed to initialize indexer");
+
     let state = Arc::new(AppState {
         neo4j_graph,
         extractor: Arc::new(Mutex::new(extractor)),
+        indexer: Arc::new(indexer),
     });
 
     // Build router
@@ -74,6 +95,8 @@ async fn main() {
         .route("/health", get(health_check))
         .route("/ingest", post(ingest_document))
         .route("/extract", post(extract_chunks))
+        .route("/index", post(index_data))
+        .route("/stats", get(get_stats))
         .with_state(state);
 
     // Start server
@@ -238,4 +261,84 @@ async fn read_chunk_files(chunks_dir: &PathBuf) -> Result<Vec<PathBuf>, StatusCo
         }
     }
     Ok(files)
+}
+
+#[derive(Serialize)]
+struct IndexResponse {
+    chunks_indexed: usize,
+    entities_indexed: usize,
+    relations_indexed: usize,
+}
+
+async fn index_data(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<IndexResponse>, StatusCode> {
+    let chunks_dir = PathBuf::from("data/chunks");
+    let extracted_dir = PathBuf::from("data/extracted");
+
+    // Read all extracted files
+    let mut entries = tokio::fs::read_dir(&extracted_dir)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let mut chunks_indexed = 0;
+    let mut total_entities = 0;
+    let mut total_relations = 0;
+
+    while let Some(entry) = entries.next_entry()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+
+        // Read extracted data
+        let extracted_json = tokio::fs::read_to_string(&path)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        
+        let extracted: extract::ExtractedChunk = serde_json::from_str(&extracted_json)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // Read corresponding chunk
+        let chunk_file = chunks_dir.join(format!("{}.json", extracted.chunk_id));
+        let chunk_json = tokio::fs::read_to_string(&chunk_file)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        
+        let chunk: ingest::Chunk = serde_json::from_str(&chunk_json)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // Index both
+        state.indexer
+            .index_extracted_chunk(&chunk, &extracted)
+            .await
+            .map_err(|e| {
+                eprintln!("Indexing error: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+        chunks_indexed += 1;
+        total_entities += extracted.extraction.entities.len();
+        total_relations += extracted.extraction.relations.len();
+    }
+
+    Ok(Json(IndexResponse {
+        chunks_indexed,
+        entities_indexed: total_entities,
+        relations_indexed: total_relations,
+    }))
+}
+
+async fn get_stats(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<index::IndexStats>, StatusCode> {
+    let stats = state.indexer
+        .get_stats()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    Ok(Json(stats))
 }

@@ -18,8 +18,9 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 
 # Database clients
-qdrant-client = "1.7"
+#qdrant-client = "1.7"
 neo4rs = "0.7"
+reqwest = "0.12"
 
 # Other crates (implement these later)
 ingest = { path = "../ingest" }
@@ -27,4 +28,3 @@ extract = { path = "../extract" }
 index = { path = "../index" }
 communities = { path = "../communities" }
 query = { path = "../query" }
-reqwest = "0.12"
