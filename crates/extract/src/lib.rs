@@ -21,6 +21,7 @@ pub mod prompt;
 pub use schema::{Entity, Relation, ExtractionResult, ExtractedChunk};
 pub use normalizer::EntityNormalizer;
 pub use llm::OllamaClient;
+use std::collections::HashMap;
 
 use anyhow::{Context, Result};
 use serde_json;
@@ -57,23 +58,24 @@ impl Extractor {
         let mut result: ExtractionResult = serde_json::from_str(&json_str)
             .context("Failed to parse extraction result")?;
         
-        // Normalize entity names
+        // Build a mapping from old IDs (E1, E2) to normalized names
+        let mut id_to_normalized: HashMap<String, String> = HashMap::new();
+        
+        // Normalize entity names and build mapping
         for entity in &mut result.entities {
             let normalized = self.normalizer.normalize(&entity.name);
+            id_to_normalized.insert(entity.id.clone(), normalized.clone());
             entity.id = normalized.clone();
             entity.name = normalized;
         }
         
-        // Update relation source/target to use normalized names
+        // Update relation source/target using the mapping
         for relation in &mut result.relations {
-            // Map old IDs to normalized names
-            if let Some(source_entity) = result.entities.iter()
-                .find(|e| e.id.starts_with(&relation.source[..2.min(relation.source.len())])) {
-                relation.source = source_entity.id.clone();
+            if let Some(normalized_source) = id_to_normalized.get(&relation.source) {
+                relation.source = normalized_source.clone();
             }
-            if let Some(target_entity) = result.entities.iter()
-                .find(|e| e.id.starts_with(&relation.target[..2.min(relation.target.len())])) {
-                relation.target = target_entity.id.clone();
+            if let Some(normalized_target) = id_to_normalized.get(&relation.target) {
+                relation.target = normalized_target.clone();
             }
         }
         

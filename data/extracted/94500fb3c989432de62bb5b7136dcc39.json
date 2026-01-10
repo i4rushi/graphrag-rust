@@ -6,8 +6,8 @@
       {
         "id": "graphrag",
         "name": "graphrag",
-        "type": "CONCEPT",
-        "description": "graph database concept"
+        "type": "TECHNOLOGY",
+        "description": "graph database technology"
       },
       {
         "id": "graph databases",
@@ -19,21 +19,21 @@
         "id": "retrieval augmented generation",
         "name": "retrieval augmented generation",
         "type": "CONCEPT",
-        "description": "text generation concept"
+        "description": "concept"
       }
     ],
     "relations": [
       {
-        "source": "E1",
-        "target": "E2",
-        "relation": "combines",
-        "evidence": "GraphRAG combines the power of graph databases with retrieval augmented generation."
+        "source": "graphrag",
+        "target": "graph databases",
+        "relation": "uses",
+        "evidence": "GraphRAG combines the power of graph databases"
       },
       {
-        "source": "E1",
-        "target": "E3",
-        "relation": "uses",
-        "evidence": "GraphRAG combines the power of graph databases with retrieval augmented generation."
+        "source": "graphrag",
+        "target": "retrieval augmented generation",
+        "relation": "affects",
+        "evidence": "with retrieval augmented generation"
       }
     ]
   }

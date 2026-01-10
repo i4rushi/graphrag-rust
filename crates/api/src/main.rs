@@ -16,6 +16,7 @@ struct AppState {
     neo4j_graph: neo4rs::Graph,
     extractor: Arc<Mutex<extract::Extractor>>,
     indexer: std::sync::Arc<index::Indexer>,
+    community_detector: std::sync::Arc<communities::CommunityDetector>,
 }
 
 #[derive(Serialize)]
@@ -83,10 +84,17 @@ async fn main() {
     // Initialize stores
     indexer.init().await.expect("Failed to initialize indexer");
 
+    let community_summarizer = communities::CommunitySummarizer::default();
+    let community_detector = communities::CommunityDetector::new(
+        neo4j_graph.clone(),
+        community_summarizer,
+    );
+
     let state = Arc::new(AppState {
         neo4j_graph,
         extractor: Arc::new(Mutex::new(extractor)),
         indexer: Arc::new(indexer),
+        community_detector: Arc::new(community_detector),
     });
 
     // Build router
@@ -97,6 +105,7 @@ async fn main() {
         .route("/extract", post(extract_chunks))
         .route("/index", post(index_data))
         .route("/stats", get(get_stats))
+        .route("/communities", post(detect_communities))
         .with_state(state);
 
     // Start server
@@ -341,4 +350,42 @@ async fn get_stats(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
     Ok(Json(stats))
+}
+
+#[derive(Serialize)]
+struct CommunitiesResponse {
+    communities_detected: usize,
+    summaries: Vec<communities::CommunitySummary>,
+}
+
+async fn detect_communities(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<CommunitiesResponse>, StatusCode> {
+    let summaries = state.community_detector
+        .detect_and_summarize()
+        .await
+        .map_err(|e| {
+            eprintln!("Community detection error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    // Save summaries to disk
+    let output_dir = PathBuf::from("data/communities");
+    tokio::fs::create_dir_all(&output_dir)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    for summary in &summaries {
+        let file_path = output_dir.join(format!("community_{}.json", summary.community_id));
+        let json = serde_json::to_string_pretty(summary)
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        tokio::fs::write(file_path, json)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    }
+
+    Ok(Json(CommunitiesResponse {
+        communities_detected: summaries.len(),
+        summaries,
+    }))
 }

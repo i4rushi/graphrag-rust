@@ -30,16 +30,10 @@
     ],
     "relations": [
       {
-        "source": "E1",
-        "target": "E2",
+        "source": "vector embeddings",
+        "target": "semantically similar content",
         "relation": "captures",
         "evidence": "Vector embeddings allow us to find semantically similar content."
-      },
-      {
-        "source": "E3",
-        "target": "E4",
-        "relation": "captures",
-        "evidence": "Graph structures capture relationships between entities."
       }
     ]
   }
