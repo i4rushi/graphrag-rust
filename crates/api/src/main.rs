@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{Query,State},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
@@ -9,7 +9,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing_subscriber;
-//use qdrant_client::Qdrant;
+use qdrant_client::Qdrant;
+
+// Import from your other crates
+use query::local_search::LocalSearchEngine;
+use query::llm::QueryLLM;
 
 #[derive(Clone)]
 struct AppState {
@@ -17,6 +21,8 @@ struct AppState {
     extractor: Arc<Mutex<extract::Extractor>>,
     indexer: std::sync::Arc<index::Indexer>,
     community_detector: std::sync::Arc<communities::CommunityDetector>,
+    local_search: std::sync::Arc<query::LocalSearchEngine>,
+    global_search: std::sync::Arc<query::GlobalSearchEngine>,
 }
 
 #[derive(Serialize)]
@@ -49,6 +55,18 @@ struct ExtractResponse {
     relations_extracted: usize,
 }
 
+// Added Search Request/Response structs
+#[derive(Deserialize)]
+struct SearchRequest {
+    q: String,
+}
+
+#[derive(Serialize)]
+struct SearchResponse {
+    answer: String,
+    sources: Vec<query::local_search::Source>,
+}
+
 #[tokio::main]
 async fn main() {
     // Initialize tracing
@@ -62,6 +80,10 @@ async fn main() {
     )
     .await
     .expect("Failed to connect to Neo4j");
+
+    let qdrant_client = Qdrant::from_url("http://localhost:6333")
+        .build()
+        .expect("Failed to create Qdrant client");
 
     // Create extractor
     let extractor = extract::Extractor::default();
@@ -90,11 +112,30 @@ async fn main() {
         community_summarizer,
     );
 
+    let query_llm = query::QueryLLM::default();
+    let query_embedding_client = index::EmbeddingClient::default();
+
+    let local_search = query::LocalSearchEngine::new(
+        //qdrant_client.clone(),
+        neo4j_graph.clone(),
+        query_embedding_client.clone(),
+        query_llm.clone(),
+        "http://localhost:6333".to_string(), 
+        "graphrag_chunks".to_string(),
+    );
+
+    let global_search = query::GlobalSearchEngine::new(
+        query_embedding_client,
+        query_llm,
+    );
+
     let state = Arc::new(AppState {
         neo4j_graph,
         extractor: Arc::new(Mutex::new(extractor)),
         indexer: Arc::new(indexer),
         community_detector: Arc::new(community_detector),
+        local_search: Arc::new(local_search),
+        global_search: Arc::new(global_search),
     });
 
     // Build router
@@ -106,6 +147,8 @@ async fn main() {
         .route("/index", post(index_data))
         .route("/stats", get(get_stats))
         .route("/communities", post(detect_communities))
+        .route("/query/local", post(query_local))
+        .route("/query/global", post(query_global))
         .with_state(state);
 
     // Start server
@@ -388,4 +431,45 @@ async fn detect_communities(
         communities_detected: summaries.len(),
         summaries,
     }))
+}
+
+#[derive(Deserialize)]
+struct QueryRequest {
+    query: String,
+    #[serde(default = "default_top_k")]
+    top_k: usize,
+}
+
+fn default_top_k() -> usize {
+    5
+}
+
+async fn query_local(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<QueryRequest>,
+) -> Result<Json<query::LocalSearchResult>, StatusCode> {
+    let result = state.local_search
+        .search(&req.query, req.top_k)
+        .await
+        .map_err(|e| {
+            eprintln!("Local search error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(result))
+}
+
+async fn query_global(
+    State(state): State<Arc<AppState>>,
+    Json(req): Json<QueryRequest>,
+) -> Result<Json<query::GlobalSearchResult>, StatusCode> {
+    let result = state.global_search
+        .search(&req.query, req.top_k)
+        .await
+        .map_err(|e| {
+            eprintln!("Global search error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    Ok(Json(result))
 }

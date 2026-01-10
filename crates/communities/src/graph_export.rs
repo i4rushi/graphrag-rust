@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use neo4rs::{Graph, Query};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct GraphData {
