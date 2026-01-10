@@ -1,0 +1,34 @@
+{
+  "chunk_id": "762a28958d1843f236ea9c81db07756f",
+  "doc_id": "b1ce10c6c3d7e5e97e1d719f96257c6f",
+  "extraction": {
+    "entities": [
+      {
+        "id": "openai",
+        "name": "openai",
+        "type": "ORGANIZATION",
+        "description": "artificial intelligence research organization"
+      },
+      {
+        "id": "microsoft azure",
+        "name": "microsoft azure",
+        "type": "TECHNOLOGY",
+        "description": "cloud computing platform"
+      },
+      {
+        "id": "2019",
+        "name": "2019",
+        "type": "EVENT",
+        "description": "year"
+      }
+    ],
+    "relations": [
+      {
+        "source": "openai",
+        "target": "microsoft azure",
+        "relation": "uses",
+        "evidence": "OpenAI uses Microsoft Azure for training."
+      }
+    ]
+  }
+}

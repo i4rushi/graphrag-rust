@@ -1,0 +1,34 @@
+{
+  "chunk_id": "4820eed8268f814b83fc6f460498840c",
+  "doc_id": "b1ce10c6c3d7e5e97e1d719f96257c6f",
+  "extraction": {
+    "entities": [
+      {
+        "id": "system",
+        "name": "system",
+        "type": "CONCEPT",
+        "description": "Concept"
+      },
+      {
+        "id": "system",
+        "name": "system",
+        "type": "TECHNOLOGY",
+        "description": "Technology"
+      },
+      {
+        "id": "system",
+        "name": "system",
+        "type": "EVENT",
+        "description": "Event"
+      }
+    ],
+    "relations": [
+      {
+        "source": "system",
+        "target": "system",
+        "relation": "relates to",
+        "evidence": "\"# Machine Learning Systems\" is about machine learning."
+      }
+    ]
+  }
+}

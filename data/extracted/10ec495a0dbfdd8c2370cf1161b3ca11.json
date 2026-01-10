@@ -6,76 +6,82 @@
       {
         "id": "system",
         "name": "system",
-        "type": "CONCEPT",
-        "description": "the system being implemented"
+        "type": "TECHNOLOGY",
+        "description": "document processing system"
       },
       {
         "id": "documents",
         "name": "documents",
         "type": "CONCEPT",
-        "description": "digital or written records"
+        "description": "electronic documents"
       },
       {
         "id": "ingestion",
         "name": "ingestion",
         "type": "CONCEPT",
-        "description": "the process of taking in data"
+        "description": "process of receiving documents"
       },
       {
         "id": "chunking",
         "name": "chunking",
         "type": "CONCEPT",
-        "description": "dividing documents into smaller parts"
+        "description": "process of breaking down documents into smaller parts"
       },
       {
         "id": "entity extraction",
         "name": "entity extraction",
         "type": "CONCEPT",
-        "description": "finding specific information in texts"
+        "description": "process of identifying entities within documents"
       },
       {
         "id": "graph indexing",
         "name": "graph indexing",
-        "type": "CONCEPT",
-        "description": "organizing data for efficient retrieval"
+        "type": "TECHNOLOGY",
+        "description": "process of creating an index for querying"
       },
       {
         "id": "query processing",
         "name": "query processing",
         "type": "CONCEPT",
-        "description": "executing search requests"
+        "description": "process of executing search queries"
       }
     ],
     "relations": [
       {
         "source": "system",
-        "target": "ingestion",
+        "target": "documents",
         "relation": "uses",
-        "evidence": "The system processes documents in several stages:..."
+        "evidence": "The system processes documents..."
+      },
+      {
+        "source": "system",
+        "target": "ingestion",
+        "relation": "ingests",
+        "evidence": "The system processes documents in several stages: ...Ingestion and chunking."
       },
       {
         "source": "system",
         "target": "chunking",
-        "relation": "uses",
-        "evidence": "The system processes documents in several stages:..."
+        "relation": "chunks",
+        "evidence": "The system processes documents in several stages: ...chunking..."
       },
       {
         "source": "system",
         "target": "entity extraction",
-        "relation": "uses",
-        "evidence": "The system processes documents in several stages:..."
+        "relation": "extracts",
+        "evidence": "The system processes documents in several stages: ...Entity extraction..."
       },
       {
         "source": "system",
         "target": "graph indexing",
-        "relation": "uses",
-        "evidence": "The system processes documents in several stages:..."
+        "relation": "indexes",
+        "evidence": "The system processes documents in several stages: ...Graph indexing..."
       },
       {
         "source": "system",
         "target": "query processing",
-        "relation": "uses",
-        "evidence": "The system processes documents in several stages:..."
+        "relation": "processes",
+        "evidence": "The system processes documents in several stages: ...Query processing."
       }
     ]
   }

@@ -1,0 +1,10 @@
+{
+  "doc_id": "b1ce10c6c3d7e5e97e1d719f96257c6f",
+  "chunk_id": "80d5bb0092c93506583417601e08927d",
+  "text": "## Technical Details\n\nTransformers use attention mechanisms. This allows them to process sequences efficiently. NVIDIA GPUs power most training.\n",
+  "source": "data/input/knowledge_base.md",
+  "offset": [
+    609,
+    754
+  ]
+}

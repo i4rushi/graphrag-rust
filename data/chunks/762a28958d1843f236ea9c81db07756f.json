@@ -1,0 +1,10 @@
+{
+  "doc_id": "b1ce10c6c3d7e5e97e1d719f96257c6f",
+  "chunk_id": "762a28958d1843f236ea9c81db07756f",
+  "text": "## Training Infrastructure\n\nOpenAI uses Microsoft Azure for training. The partnership began in 2019 and involves billions in compute resources.\n\n",
+  "source": "data/input/knowledge_base.md",
+  "offset": [
+    184,
+    329
+  ]
+}

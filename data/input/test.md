@@ -19,4 +19,3 @@ Finally, the query engine can perform local search by expanding from relevant en
 ## Benefits
 
 GraphRAG outperforms traditional RAG systems on multi-hop questions and summarization tasks. The graph structure enables better context gathering and reduces hallucinations.
-EOF

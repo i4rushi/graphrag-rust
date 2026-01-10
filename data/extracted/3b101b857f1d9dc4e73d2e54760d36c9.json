@@ -1,0 +1,70 @@
+{
+  "chunk_id": "3b101b857f1d9dc4e73d2e54760d36c9",
+  "doc_id": "b1ce10c6c3d7e5e97e1d719f96257c6f",
+  "extraction": {
+    "entities": [
+      {
+        "id": "anthropic",
+        "name": "anthropic",
+        "type": "ORGANIZATION",
+        "description": "AI research organization"
+      },
+      {
+        "id": "openai",
+        "name": "openai",
+        "type": "ORGANIZATION",
+        "description": "Artificial intelligence research organization"
+      },
+      {
+        "id": "dario amodei",
+        "name": "dario amodei",
+        "type": "PERSON",
+        "description": "AI researcher and founder of Anthropic"
+      },
+      {
+        "id": "claude",
+        "name": "claude",
+        "type": "TECHNOLOGY",
+        "description": "AI model created by Anthropic"
+      },
+      {
+        "id": "google",
+        "name": "google",
+        "type": "ORGANIZATION",
+        "description": "Technology company"
+      },
+      {
+        "id": "bard",
+        "name": "bard",
+        "type": "TECHNOLOGY",
+        "description": "AI model developed by Google"
+      },
+      {
+        "id": "gemini",
+        "name": "gemini",
+        "type": "TECHNOLOGY",
+        "description": "Rebranded AI model developed by Google"
+      }
+    ],
+    "relations": [
+      {
+        "source": "anthropic",
+        "target": "claude",
+        "relation": "created",
+        "evidence": "Anthropic, founded by former OpenAI researchers including Dario Amodei, created Claude."
+      },
+      {
+        "source": "openai",
+        "target": "dario amodei",
+        "relation": "includes",
+        "evidence": ""
+      },
+      {
+        "source": "google",
+        "target": "bard",
+        "relation": "developed",
+        "evidence": "Google developed Bard (now Gemini)."
+      }
+    ]
+  }
+}

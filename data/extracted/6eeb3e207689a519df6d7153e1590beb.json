@@ -1,0 +1,58 @@
+{
+  "chunk_id": "6eeb3e207689a519df6d7153e1590beb",
+  "doc_id": "b1ce10c6c3d7e5e97e1d719f96257c6f",
+  "extraction": {
+    "entities": [
+      {
+        "id": "chatgpt",
+        "name": "chatgpt",
+        "type": "TECHNOLOGY",
+        "description": "chatbot technology"
+      },
+      {
+        "id": "gpt-35",
+        "name": "gpt-35",
+        "type": "TECHNOLOGY",
+        "description": "language model"
+      },
+      {
+        "id": "gpt-4",
+        "name": "gpt-4",
+        "type": "TECHNOLOGY",
+        "description": "language model"
+      },
+      {
+        "id": "openai",
+        "name": "openai",
+        "type": "ORGANIZATION",
+        "description": "artificial intelligence research organization"
+      },
+      {
+        "id": "sam altman",
+        "name": "sam altman",
+        "type": "PERSON",
+        "description": "CEO of OpenAI"
+      }
+    ],
+    "relations": [
+      {
+        "source": "chatgpt",
+        "target": "gpt-35",
+        "relation": "uses",
+        "evidence": "ChatGPT, launched in November 2022, uses GPT-3.5"
+      },
+      {
+        "source": "chatgpt",
+        "target": "gpt-4",
+        "relation": "uses",
+        "evidence": "It was developed by the OpenAI team led by Sam Altman."
+      },
+      {
+        "source": "openai",
+        "target": "sam altman",
+        "relation": "led_by",
+        "evidence": "the OpenAI team led by Sam Altman"
+      }
+    ]
+  }
+}

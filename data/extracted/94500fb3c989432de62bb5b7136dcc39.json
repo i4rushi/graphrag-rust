@@ -13,13 +13,13 @@
         "id": "graph databases",
         "name": "graph databases",
         "type": "CONCEPT",
-        "description": "database concept"
+        "description": "concept of graph databases"
       },
       {
         "id": "retrieval augmented generation",
         "name": "retrieval augmented generation",
         "type": "CONCEPT",
-        "description": "concept"
+        "description": "concept of retrieval augmented generation"
       }
     ],
     "relations": [
@@ -32,7 +32,7 @@
       {
         "source": "graphrag",
         "target": "retrieval augmented generation",
-        "relation": "affects",
+        "relation": "augments",
         "evidence": "with retrieval augmented generation"
       }
     ]

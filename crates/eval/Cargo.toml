@@ -1,0 +1,25 @@
+[package]
+name = "eval"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+
+# Plotting
+plotters = "0.3"
+
+# Statistics
+statistical = "1.0"
+
+# Reference to other crates
+query = { path = "../query" }
+index = { path = "../index" }
+reqwest = { version = "0.13.1", features = ["json"] }
+
+[[bin]]
+name = "run_benchmark"
+path = "src/bin/run_benchmark.rs"

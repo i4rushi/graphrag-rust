@@ -5,7 +5,7 @@ members = [
     "crates/index",
     "crates/communities",
     "crates/query",
-    "crates/api",
+    "crates/api", "crates/eval",
 ]
 resolver = "2"
 

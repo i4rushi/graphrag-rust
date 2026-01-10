@@ -1,0 +1,82 @@
+{
+  "vanilla_rag": {
+    "method": "Vanilla RAG",
+    "total_queries": 10,
+    "avg_latency_ms": 4828.2,
+    "p50_latency_ms": 4759.0,
+    "p95_latency_ms": 7431.0,
+    "avg_quality_score": 0.65,
+    "by_category": [
+      {
+        "category": "Relational",
+        "avg_quality": 1.0,
+        "count": 2
+      },
+      {
+        "category": "Thematic",
+        "avg_quality": 0.5,
+        "count": 3
+      },
+      {
+        "category": "Factual",
+        "avg_quality": 0.3333333333333333,
+        "count": 3
+      },
+      {
+        "category": "MultiHop",
+        "avg_quality": 1.0,
+        "count": 2
+      }
+    ]
+  },
+  "graphrag_local": {
+    "method": "GraphRAG Local",
+    "total_queries": 10,
+    "avg_latency_ms": 7541.8,
+    "p50_latency_ms": 7827.0,
+    "p95_latency_ms": 9899.0,
+    "avg_quality_score": 0.65,
+    "by_category": [
+      {
+        "category": "Thematic",
+        "avg_quality": 0.5,
+        "count": 3
+      },
+      {
+        "category": "MultiHop",
+        "avg_quality": 1.0,
+        "count": 2
+      },
+      {
+        "category": "Factual",
+        "avg_quality": 0.5,
+        "count": 3
+      },
+      {
+        "category": "Relational",
+        "avg_quality": 0.75,
+        "count": 2
+      }
+    ]
+  },
+  "graphrag_global": {
+    "method": "GraphRAG Global",
+    "total_queries": 3,
+    "avg_latency_ms": 35250.0,
+    "p50_latency_ms": 33685.0,
+    "p95_latency_ms": 39228.0,
+    "avg_quality_score": 0.5,
+    "by_category": [
+      {
+        "category": "Thematic",
+        "avg_quality": 0.5,
+        "count": 3
+      }
+    ]
+  },
+  "comparison": {
+    "local_vs_vanilla_quality_improvement": 0.0,
+    "global_vs_vanilla_quality_improvement": -23.076923076923077,
+    "local_vs_vanilla_latency_ratio": 1.5620313988650016
+  }
+}

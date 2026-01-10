@@ -1,0 +1,34 @@
+{
+  "chunk_id": "80d5bb0092c93506583417601e08927d",
+  "doc_id": "b1ce10c6c3d7e5e97e1d719f96257c6f",
+  "extraction": {
+    "entities": [
+      {
+        "id": "transformers",
+        "name": "transformers",
+        "type": "CONCEPT",
+        "description": "Artificial intelligence concept"
+      },
+      {
+        "id": "attention mechanisms",
+        "name": "attention mechanisms",
+        "type": "CONCEPT",
+        "description": "Computer science concept"
+      },
+      {
+        "id": "nvidia gpus",
+        "name": "nvidia gpus",
+        "type": "TECHNOLOGY",
+        "description": "Graphics processing units"
+      }
+    ],
+    "relations": [
+      {
+        "source": "transformers",
+        "target": "attention mechanisms",
+        "relation": "uses",
+        "evidence": "Transformers use attention mechanisms"
+      }
+    ]
+  }
+}
