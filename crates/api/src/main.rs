@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Query,State},
+    extract::{State},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
@@ -12,8 +12,20 @@ use tracing_subscriber;
 use qdrant_client::Qdrant;
 
 // Import from your other crates
-use query::local_search::LocalSearchEngine;
-use query::llm::QueryLLM;
+//use query::local_search::LocalSearchEngine;
+//use query::llm::QueryLLM;
+
+mod config;
+mod cache;
+mod retry;
+mod metrics;
+mod request_id;
+
+use config::AppConfig;
+use cache::Cache;
+use retry::RetryPolicy;
+use metrics::{Metrics, TimedOperation};
+use request_id::{RequestId, request_id_middleware};
 
 #[derive(Clone)]
 struct AppState {
@@ -23,6 +35,11 @@ struct AppState {
     community_detector: std::sync::Arc<communities::CommunityDetector>,
     local_search: std::sync::Arc<query::LocalSearchEngine>,
     global_search: std::sync::Arc<query::GlobalSearchEngine>,
+    config: AppConfig,
+    cache: Arc<Cache>,
+    metrics: Arc<Metrics>,
+    retry_policy: Arc<RetryPolicy>,
+    llm_semaphore: Arc<tokio::sync::Semaphore>,
 }
 
 #[derive(Serialize)]
@@ -56,21 +73,49 @@ struct ExtractResponse {
 }
 
 // Added Search Request/Response structs
-#[derive(Deserialize)]
-struct SearchRequest {
-    q: String,
-}
+// #[derive(Deserialize)]
+// struct SearchRequest {
+//     q: String,
+// }
 
-#[derive(Serialize)]
-struct SearchResponse {
-    answer: String,
-    sources: Vec<query::local_search::Source>,
-}
+// #[derive(Serialize)]
+// struct SearchResponse {
+//     answer: String,
+//     sources: Vec<query::local_search::Source>,
+// }
 
 #[tokio::main]
 async fn main() {
     // Initialize tracing
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_target(true)
+        .with_thread_ids(true)
+        .with_level(true)
+        .json()
+        .init();
+
+    // Load config
+    let config = AppConfig::default(); // Or load from file/env
+    
+    tracing::info!(mode = ?config.mode, "Starting GraphRAG API");
+
+    // Initialize cache
+    let cache = Arc::new(Cache::new(config.cache.max_entries));
+
+    // Initialize metrics
+    let metrics = Metrics::new();
+
+    // Initialize retry policy
+    let retry_policy = Arc::new(RetryPolicy::new(
+        config.retry.max_retries,
+        config.retry.initial_backoff_ms,
+        config.retry.max_backoff_ms,
+    ));
+
+    // Concurrency control
+    let llm_semaphore = Arc::new(tokio::sync::Semaphore::new(
+        config.concurrency.max_concurrent_llm_calls
+    ));
 
     // Connect to Neo4j
     let neo4j_graph = neo4rs::Graph::new(
@@ -81,10 +126,6 @@ async fn main() {
     .await
     .expect("Failed to connect to Neo4j");
 
-    let qdrant_client = Qdrant::from_url("http://localhost:6333")
-        .build()
-        .expect("Failed to create Qdrant client");
-
     // Create extractor
     let extractor = extract::Extractor::default();
 
@@ -92,6 +133,10 @@ async fn main() {
     let embedding_client = index::EmbeddingClient::default();
 
     // Create Qdrant indexer (using REST API)
+    let _qdrant_client = Qdrant::from_url("http://localhost:6333")
+        .build()
+        .expect("Failed to create Qdrant client");
+
     let qdrant_indexer = index::QdrantIndexer::new(
         "http://localhost:6333".to_string(),
         embedding_client,
@@ -136,6 +181,11 @@ async fn main() {
         community_detector: Arc::new(community_detector),
         local_search: Arc::new(local_search),
         global_search: Arc::new(global_search),
+        config,
+        cache,
+        metrics,
+        retry_policy,
+        llm_semaphore,
     });
 
     // Build router
@@ -145,10 +195,16 @@ async fn main() {
         .route("/ingest", post(ingest_document))
         .route("/extract", post(extract_chunks))
         .route("/index", post(index_data))
-        .route("/stats", get(get_stats))
+        //.route("/stats", get(get_stats))
         .route("/communities", post(detect_communities))
         .route("/query/local", post(query_local))
         .route("/query/global", post(query_global))
+        .route("/stats", get(get_stats))
+        .route("/metrics", get(get_metrics))
+        .route("/cache/stats", get(get_cache_stats))
+        .route("/cache/clear", post(clear_cache))
+        .route("/config", get(get_config))
+        .layer(axum::middleware::from_fn(request_id_middleware))
         .with_state(state);
 
     // Start server
@@ -159,6 +215,31 @@ async fn main() {
     tracing::info!("Server listening on http://localhost:3000");
     
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn get_metrics(
+    State(state): State<Arc<AppState>>,
+) -> Json<metrics::MetricsSnapshot> {
+    Json(state.metrics.snapshot())
+}
+
+async fn get_cache_stats(
+    State(state): State<Arc<AppState>>,
+) -> Json<cache::CacheStats> {
+    Json(state.cache.stats())
+}
+
+async fn clear_cache(
+    State(state): State<Arc<AppState>>,
+) -> StatusCode {
+    state.cache.clear();
+    StatusCode::OK
+}
+
+async fn get_config(
+    State(state): State<Arc<AppState>>,
+) -> Json<AppConfig> {
+    Json(state.config.clone())
 }
 
 async fn health_check(
@@ -446,15 +527,39 @@ fn default_top_k() -> usize {
 
 async fn query_local(
     State(state): State<Arc<AppState>>,
+    axum::Extension(request_id): axum::Extension<RequestId>,
     Json(req): Json<QueryRequest>,
 ) -> Result<Json<query::LocalSearchResult>, StatusCode> {
+    tracing::info!(
+        request_id = %request_id.0,
+        query = %req.query,
+        "Local search request"
+    );
+
+    let timer = TimedOperation::start();
+    
     let result = state.local_search
         .search(&req.query, req.top_k)
         .await
         .map_err(|e| {
-            eprintln!("Local search error: {}", e);
+            tracing::error!(
+                request_id = %request_id.0,
+                error = %e,
+                "Local search failed"
+            );
+            state.metrics.record_request(false);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
+
+    state.metrics.record_query(timer.elapsed());
+    state.metrics.record_request(true);
+
+    tracing::info!(
+        request_id = %request_id.0,
+        duration_ms = timer.elapsed().as_millis(),
+        chunks_retrieved = result.trace.chunks_retrieved,
+        "Local search completed"
+    );
 
     Ok(Json(result))
 }

@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use neo4rs::{Graph, Query};
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::llm::QueryLLM;
 use index::EmbeddingClient;
