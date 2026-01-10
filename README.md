@@ -1,5 +1,3 @@
----
-
 # GraphRAG in Rust: A Structured Retrieval System for LLM Reasoning
 
 ## Overview
