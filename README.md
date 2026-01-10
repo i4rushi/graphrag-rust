@@ -15,7 +15,7 @@ The project emphasizes **ML systems thinking**: pipeline design, failure modes, 
 
 ---
 
-## High-Level Architecture
+# High-Level Architecture
 
 The system is composed of four primary subsystems:
 
